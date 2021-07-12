@@ -69,8 +69,18 @@ def add_centernet_config(cfg):
     _C.MODEL.DLA.DLAUP_IN_FEATURES = ['dla3', 'dla4', 'dla5']
     _C.MODEL.DLA.DLAUP_NODE = 'conv'
 
+    _C.MODEL.SWIN = CN()
+    _C.MODEL.SWIN.SIZE = 'T' # 'T', 'S', 'B'
+    _C.MODEL.SWIN.USE_CHECKPOINT = False
+    _C.MODEL.SWIN.OUT_FEATURES = (1, 2, 3) # (0, 1, 2, 3)
+
     _C.SOLVER.RESET_ITER = False
     _C.SOLVER.TRAIN_ITER = -1
+    _C.SOLVER.USE_CUSTOM_SOLVER = False
+    _C.SOLVER.OPTIMIZER = 'SGD'
+    _C.SOLVER.BACKBONE_MULTIPLIER = 1.0
+    _C.SOLVER.CUSTOM_MULTIPLIER = 1.0
+    _C.SOLVER.CUSTOM_MULTIPLIER_NAME = []
 
     _C.INPUT.CUSTOM_AUG = ''
     _C.INPUT.TRAIN_SIZE = 640

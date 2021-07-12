@@ -1,0 +1,24 @@
+_BASE_: "Base-CenterNet2.yaml"
+MODEL:
+  BACKBONE:
+    NAME: build_swintransformer_fpn_backbone
+  SWIN:
+    SIZE: B
+  FPN:
+    IN_FEATURES: ["swin1", "swin2", "swin3"]
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.12, 57.375]
+  WEIGHTS: None
+TEST:
+  EVAL_PERIOD: 7500
+SOLVER:
+  USE_CUSTOM_SOLVER: True
+  MAX_ITER: 90000
+  LR_SCHEDULER_NAME: "WarmupCosineLR"
+  BASE_LR: 0.0001
+  IMS_PER_BATCH: 32
+  OPTIMIZER: "ADAMW"
+INPUT:
+  CUSTOM_AUG: EfficientDetResizeCrop
+  TRAIN_SIZE: 896
+  FORMAT: RGB

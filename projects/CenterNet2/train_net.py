@@ -37,6 +37,8 @@ from detectron2.data.build import build_detection_train_loader
 
 from centernet.config import add_centernet_config
 from centernet.data.custom_build_augmentation import build_custom_augmentation
+from centernet.modeling.backbone.swintransformer import build_swintransformer_fpn_backbone
+from custom_solver import build_custom_optimizer
 
 logger = logging.getLogger("detectron2")
 
@@ -70,7 +72,13 @@ def do_test(cfg, model):
 
 def do_train(cfg, model, resume=False):
     model.train()
-    optimizer = build_optimizer(cfg, model)
+    if cfg.SOLVER.USE_CUSTOM_SOLVER:
+        optimizer = build_custom_optimizer(cfg, model)
+    else:
+        assert cfg.SOLVER.OPTIMIZER == 'SGD'
+        assert cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE != 'full_model'
+        assert cfg.SOLVER.BACKBONE_MULTIPLIER == 1.
+        optimizer = build_optimizer(cfg, model)
     scheduler = build_lr_scheduler(cfg, optimizer)
 
     checkpointer = DetectionCheckpointer(
