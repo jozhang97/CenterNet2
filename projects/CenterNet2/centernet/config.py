@@ -82,6 +82,7 @@ def add_centernet_config(cfg):
     _C.SOLVER.CUSTOM_MULTIPLIER = 1.0
     _C.SOLVER.CUSTOM_MULTIPLIER_NAME = []
 
+    _C.INPUT.VID = CN()
     _C.INPUT.VID.MAX_VIDEO_LEN = 1
     _C.INPUT.VID.MIN_VIDEO_LEN = 1
     _C.INPUT.CUSTOM_AUG = 'EfficientDetResizeCrop'

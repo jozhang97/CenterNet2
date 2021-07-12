@@ -46,7 +46,7 @@ def build_video_train_loader(cfg, mapper):
     dataset_dicts = get_video_dataset_dicts(
         cfg.DATASETS.TRAIN,
         filter_empty=cfg.DATALOADER.FILTER_EMPTY_ANNOTATIONS,
-        gen_inst_id=cfg.INPUT.VID.GEN_IMAGE_MOTION
+        gen_inst_id=True,
     )
     sizes = [0 for _ in range(len(cfg.DATASETS.TRAIN))]
     for d in dataset_dicts:

@@ -39,13 +39,14 @@ class VideoDatasetMapper(DatasetMapper):
 
     @classmethod
     def from_config(cls, cfg, is_train: bool = True):
-        ret = super().from_config(cfg, is_train)
+        # ret = super().from_config(cfg, is_train)
+        ret = {}
         ret['min_video_len'] = cfg.INPUT.VID.MIN_VIDEO_LEN
         ret['max_video_len'] = cfg.INPUT.VID.MAX_VIDEO_LEN
         if cfg.INPUT.CUSTOM_AUG != '':
-            ret['augmentation'] = build_custom_augmentation(cfg, is_train)
+            ret['augmentations'] = build_custom_augmentation(cfg, is_train)
         else:
-            ret['augmentation'] = []
+            ret['augmentations'] = []
         return ret
 
     def __call__(self, video_dict):
@@ -66,7 +67,9 @@ class VideoDatasetMapper(DatasetMapper):
         ## Load and apply transforms to frames and annotations
         ret = []
         for i, dataset_dict in enumerate(images_dict):
-            image = utils.read_image(dataset_dict['file_name'], format=self.image_format)
+            fn = dataset_dict['file_name']
+            # TODO try jpg and jpeg
+            image = utils.read_image(fn, format=self.image_format)
             aug_input = T.StandardAugInput(image)
             transforms = aug_input.apply_augmentations(self.augmentations)
             image = aug_input.image
