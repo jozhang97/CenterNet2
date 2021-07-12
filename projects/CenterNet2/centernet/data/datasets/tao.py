@@ -34,22 +34,6 @@ def register_tao_instances(name, metadata, json_file, image_root):
     )
 
 
-def register_tao_v1_instances(name, metadata, json_file, image_root):
-    """
-    Register a dataset in TAO's json annotation format for instance detection and segmentation.
-
-    Args:
-        name (str): a name that identifies the dataset, e.g. "lvis_v0.5_train".
-        metadata (dict): extra metadata associated with this dataset. It can be an empty dict.
-        json_file (str): path to the json instance annotation file.
-        image_root (str): directory which contains all the images.
-    """
-    DatasetCatalog.register(name, lambda: load_tao_json(json_file, image_root, name))
-    MetadataCatalog.get(name).set(
-        json_file=json_file, image_root=image_root, evaluator_type="lvis", **metadata
-    )
-
-
 def load_tao_json(json_file, image_root, dataset_name=None):
     from lvis import LVIS
 
@@ -61,8 +45,6 @@ def load_tao_json(json_file, image_root, dataset_name=None):
         logger.info("Loading {} takes {:.2f} seconds.".format(json_file, timer.seconds()))
 
     meta = {}
-    if 'v1' in dataset_name:
-        meta = get_lvis_instances_meta('lvis_v1')
     if 'coco' in dataset_name:
         meta = _get_builtin_metadata('coco')
 
@@ -70,13 +52,16 @@ def load_tao_json(json_file, image_root, dataset_name=None):
     cat_ids = sorted(lvis_api.get_cat_ids())
     id_map = {v: i for i, v in enumerate(cat_ids)}
     meta['thing_dataset_id_to_contiguous_id'] = id_map
-    if not (min(cat_ids) == 1 and max(cat_ids) == len(cat_ids)):
+    if not (min(cat_ids) == 1 and max(cat_ids) == len(cat_ids)) and 'coco_cont' not in dataset_name:
         logger.warning(
             """
             Category ids in annotations are not in [1, #categories]! We'll apply a mapping for you.
             """
         )
         logger.warning(id_map)
+
+    if 'coco_cont' in dataset_name:  # Contiguous mapping has already been done
+        meta = COCO_CONT_METADATA()
     MetadataCatalog.get(dataset_name).set(**meta)
 
     img_ids = sorted(lvis_api.imgs.keys())
@@ -131,16 +116,6 @@ def load_tao_json(json_file, image_root, dataset_name=None):
             # obj["category_id"] = anno["category_id"] - 1  # Convert 1-indexed to 0-indexed
             if 'track_id' in anno:
                 obj['track_id'] = anno['track_id']
-            # segm = anno["segmentation"]  # list[list[float]]
-            # filter out invalid polygons (< 3 points)
-            # valid_segm = [poly for poly in segm if len(poly) % 2 == 0 and len(poly) >= 6]
-            # assert len(segm) == len(
-            #     valid_segm
-            # ), "Annotation contains an invalid polygon with < 3 points"
-            # if not len(segm) == len(valid_segm):
-            #   print('Annotation contains an invalid polygon with < 3 points')
-            # assert len(segm) > 0
-            # obj["segmentation"] = segm
             objs.append(obj)
         record["annotations"] = objs
         dataset_dicts.append(record)
@@ -169,37 +144,10 @@ def get_tao_instances_meta():
     return meta
 
 
-def get_tao_v1_instances_meta():
-    assert len(LVIS_V1_CATEGORIES) == 1203
-    cat_ids = [k["id"] for k in LVIS_V1_CATEGORIES]
-    assert min(cat_ids) == 1 and max(cat_ids) == len(
-        cat_ids
-    ), "Category ids are not in [1, #categories], as expected"
-    # Ensure that the category list is sorted by id
-    lvis_categories = sorted(LVIS_V1_CATEGORIES, key=lambda x: x["id"])
-    thing_classes = [k["synonyms"][0] for k in lvis_categories]
-    meta = {"thing_classes": thing_classes}
-    return meta
-
-
 _PREDEFINED_SPLITS_TAO = {
-    "tao_train": ("tao/keyframes/", "tao/annotations/train_fixfilename.json"),
-    "tao_val": ("tao/keyframes/", "tao/annotations/validation_fixfilename.json"),
-    "tao_val_full": ("tao/frames/", "tao/annotations/validation_fixfilename_full.json"),
-    "tao_val_full_sample3": ("tao/frames/", "tao/annotations/validation_fixfilename_full_sample3.json"),
-    "tao_val_full_sample10": ("tao/frames/", "tao/annotations/validation_fixfilename_full_sample10.json"),
-    "tao_val_full_sample3_mini": ("tao/frames/", "tao/annotations/validation_full_sample3_mini.json"),
-    "tao_val_full_sample10_mini": ("tao/frames/", "tao/annotations/validation_full_sample10_mini.json"),
-    "tao_val_full_mini": ("tao/frames/", "tao/annotations/validation_full_mini.json"),
-    "tao_val_mini": ("tao/frames/", "tao/annotations/validation_mini.json"),
-    "tao_test": ("tao/frames/", "tao/annotations/test_without_annotations.json"),
-    "tao_test_full": ("tao/frames/", "tao/annotations/test_full.json"),
-    "tao_test_full_sample3": ("tao/frames/", "tao/annotations/test_without_annotations_full_sample3.json"),
-    "tao_test_full_sample10": ("tao/frames/", "tao/annotations/test_without_annotations_full_sample10.json"),
-    # My own
-    'tao_val_coco_mini': ('tao/keyframes/', 'tao/annotations/val_coco_mini.json'),
-    'tao_val_coco_small': ('tao/keyframes/', 'tao/annotations/val_coco_small.json'),
-    'tao_val_coco': ('tao/keyframes/', 'tao/annotations/val_coco.json'),
+    "tao_val":       ("tao/keyframes/", "tao/annotations/val.json"),
+    "tao_val_small": ("tao/frames/", "tao/annotations/val_small.json"),
+    "tao_val_mini":  ("tao/frames/", "tao/annotations/val_mini.json"),
 }
 
 for key, (image_root, json_file) in _PREDEFINED_SPLITS_TAO.items():
@@ -210,71 +158,22 @@ for key, (image_root, json_file) in _PREDEFINED_SPLITS_TAO.items():
         os.path.join("datasets", image_root),
     )
 
-_PREDEFINED_SPLITS_TAOV1 = {
-    "tao_train_v1": ("tao/keyframes/", "tao/annotations/train_fixfilename_v1_fixann.json"),
-    "tao_train_v1_ArgoVerse": ("tao/frames/", "tao/annotations/train_fixfilename_v1_fixann_ArgoVerse.json"),
-    "tao_train_v1_AVA": ("tao/frames/", "tao/annotations/train_fixfilename_v1_fixann_AVA.json"),
-    "tao_train_v1_BDD": ("tao/frames/", "tao/annotations/train_fixfilename_v1_fixann_BDD.json"),
-    "tao_train_v1_Charades": ("tao/frames/", "tao/annotations/train_fixfilename_v1_fixann_Charades.json"),
-    "tao_train_v1_HACS": ("tao/frames/", "tao/annotations/train_fixfilename_v1_fixann_HACS.json"),
-    "tao_train_v1_LaSOT": ("tao/frames/", "tao/annotations/train_fixfilename_v1_fixann_LaSOT.json"),
-    "tao_train_v1_YFCC100M": ("tao/frames/", "tao/annotations/train_fixfilename_v1_fixann_YFCC100M.json"),
-    "tao_train_v1_full": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full.json"),
-    "tao_train_v1_full_ArgoVerse": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_ArgoVerse.json"),
-    "tao_train_v1_full_AVA": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_AVA.json"),
-    "tao_train_v1_full_BDD": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_BDD.json"),
-    "tao_train_v1_full_Charades": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_Charades.json"),
-    "tao_train_v1_full_HACS": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_HACS.json"),
-    "tao_train_v1_full_LaSOT": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_LaSOT.json"),
-    "tao_train_v1_full_YFCC100M": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_YFCC100M.json"),
-    "tao_val_v1": ("tao/keyframes/", "tao/annotations/validation_fixfilename_v1_fixtrack.json"),
-    "tao_val_v1_mini": ("tao/keyframes/", "tao/annotations/validation_fixfilename_v1_fixtrack_mini.json"),
-    "tao_train_dist05_v1": ("tao/keyframes/", "tao/annotations/tao_train_dr2101+coco_ann0.5.json"),
-    "tao_train_v1_full_sample5": ("tao/frames/", "tao/annotations/train_fixfilename_v1_full_sample5.json"),
-    "tao_test_v05": ("tao/keyframes/", "tao/annotations/test_without_annotations.json"),
-    # thresh/images/anns: 555/105888/1614404/ {'r': 16,459, 'c': 47,739, 'f': 1,550,206}
-    "tao_trains5_lc35.9_555": ("tao/frames/", "pseudo_labels/lvis_taotrains5_lc35.9_555.json"),
-    # thresh/images/anns: 456/105888/1091598/ {'r': 40,749, 'c': 47,739, 'f': 1,003,110}
-    "tao_trains5_lc35.9_456": ("tao/frames/", "pseudo_labels/lvis_taotrains5_lc35.9_456.json"),
-    # thresh/images/anns: 459/254851/1091598/ {'r': 40749, 'c': 47739, 'f': 166363}
-    "tao_trains5_lc35.9_459": ("tao/frames/", "pseudo_labels/lvis_taotrains5_lc35.9_459.json"),
-    # 107008/2453907
-    "proposals_taotrains5_lo55.7_5": ("tao/frames/", "pseudo_labels/proposals_taotrains5_lo55.7_555.json"),
-    # 105409/ 992625
-    "proposals_taotrains5_lo55.7_6": ("tao/frames/", "pseudo_labels/proposals_taotrains5_lo55.7_666.json"),
-    # 102893/ 549987
-    "proposals_taotrains5_lc35.9_777": ("tao/frames/", "pseudo_labels/proposals_taotrains5_lc35.9_777.json"),
-    # 95053/ 283175
-    "proposals_taotrains5_lc35.9_888": ("tao/frames/", "pseudo_labels/proposals_taotrains5_lc35.9_888.json"),
+# cont - contiguous, already performed id_map to naturals
+_PREDEFINED_SPLITS_TAOCOCO_CONT = {
+    "tao_val_coco_cont":       ("tao/keyframes/", "tao/annotations/val_coco.json"),
+    "tao_val_small_coco_cont": ("tao/keyframes/", "tao/annotations/val_coco_small.json"),
+    "tao_val_mini_coco_cont":  ("tao/keyframes/", "tao/annotations/val_coco_mini.json"),
 }
 
-for key, (image_root, json_file) in _PREDEFINED_SPLITS_TAOV1.items():
-    register_tao_v1_instances(
+def COCO_CONT_METADATA():
+    meta = _get_builtin_metadata("coco")
+    meta['thing_dataset_id_to_contiguous_id'] = {i:i for i in range(80)}
+    return meta
+
+for key, (image_root, json_file) in _PREDEFINED_SPLITS_TAOCOCO_CONT.items():
+    register_tao_instances(
         key,
-        get_lvis_instances_meta("lvis_v1"),
-        os.path.join("datasets", json_file) if "://" not in json_file else json_file,
-        os.path.join("datasets", image_root),
-    )
-
-_PREDEFINED_SPLITS_TAOCOCO = {
-    "tao_train_coco": ("tao/keyframes/", "tao/annotations/train_fixfilename_cococats.json"),
-    "tao_train_coco_YFCC100M": ("tao/keyframes/", "tao/annotations/train_fixfilename_cococats_YFCC100M.json"),
-    "tao_train_coco_full_YFCC100M": ("tao/frames/", "tao/annotations/train_fixfilename_cococats_full_YFCC100M.json"),
-    # "tao_val_coco": ("tao/keyframes/", "tao/annotations/validation_fixfilename_cococats.json"),
-    "tao_train_coco_full": ("tao/frames/", "tao/annotations/train_fixfilename_cococats_full.json"),
-    "tao_train_coco_full_sample5": ("tao/frames/", "tao/annotations/train_fixfilename_cococats_full_sample5.json"),
-    "coco_taotrains5_c50.6_5": ("tao/frames/", "pseudo_labels/coco_taotrains5_c50.6_5.json"),  # 783k
-    "coco_taotrains5_c50.6_6": ("tao/frames/", "pseudo_labels/coco_taotrains5_c50.6_6.json"),  # 588k
-    "coco_taotrains5_c50.6_7": ("tao/frames/", "pseudo_labels/coco_taotrains5_c50.6_7.json"),  # 432k
-    "coco_taotrain_c50.6_5": ("tao/frames/", "pseudo_labels/coco_taotrain_c50.6_5.json"),  # 432k
-    "coco_taotrain_c50.6_7": ("tao/frames/", "pseudo_labels/coco_taotrain_c50.6_7.json"),  # 432k
-
-}
-
-for key, (image_root, json_file) in _PREDEFINED_SPLITS_TAOCOCO.items():
-    register_tao_v1_instances(
-        key,
-        _get_builtin_metadata("coco"),
+        COCO_CONT_METADATA(),
         os.path.join("datasets", json_file) if "://" not in json_file else json_file,
         os.path.join("datasets", image_root),
     )
