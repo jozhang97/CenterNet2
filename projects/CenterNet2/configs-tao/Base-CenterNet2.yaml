@@ -53,4 +53,11 @@ SOLVER:
     ENABLED: True
 INPUT:
   MIN_SIZE_TRAIN: (640, 672, 704, 736, 768, 800)
+  VID:
+    MAX_VIDEO_LEN: 5
+    MIN_VIDEO_LEN: 5
+  CUSTOM_AUG: "EfficientDetResizeCrop"
+  TRAIN_SIZE: 640
+  TEST_SIZE: 640
+  SCALE_RANGE: (0.1, 2.)
 OUTPUT_DIR: "./output/CenterNet2/auto"

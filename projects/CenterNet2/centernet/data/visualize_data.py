@@ -14,6 +14,8 @@ from detectron2.utils.logger import setup_logger
 from detectron2.utils.visualizer import Visualizer
 
 from centernet.data.datasets.tao import *
+from centernet.data.video_dataset_dataloader import build_video_train_loader
+from centernet.data.video_dataset_mapper import VideoDatasetMapper
 from centernet.config import add_centernet_config
 
 def setup(args):
@@ -22,6 +24,7 @@ def setup(args):
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.DATALOADER.NUM_WORKERS = 0
+    cfg.SOLVER.IMS_PER_BATCH = 1
     cfg.freeze()
     return cfg
 
@@ -69,9 +72,12 @@ if __name__ == "__main__":
 
     scale = 1.0
     if args.source == "dataloader":
-        train_data_loader = build_detection_train_loader(cfg)
-        for batch in train_data_loader:
-            for per_image in batch:
+        # train_data_loader = build_detection_train_loader(cfg)
+        mapper_cfg = VideoDatasetMapper.from_config(cfg)
+        mapper = VideoDatasetMapper(True, image_format='RGB', **mapper_cfg)
+        train_data_loader = build_video_train_loader(cfg, mapper)
+        for batch_idx, batch in enumerate(train_data_loader):
+            for sample_idx, per_image in enumerate(batch):
                 # Pytorch tensor is in (C, H, W) format
                 img = per_image["image"].permute(1, 2, 0).cpu().detach().numpy()
                 img = utils.convert_image_to_rgb(img, cfg.INPUT.FORMAT)
@@ -85,7 +91,7 @@ if __name__ == "__main__":
                     masks=target_fields.get("gt_masks", None),
                     keypoints=target_fields.get("gt_keypoints", None),
                 )
-                output(vis, str(per_image["image_id"]) + ".jpg")
+                output(vis, f'b{batch_idx}_s{sample_idx}_{per_image["image_id"]}.jpg')
     else:
         dicts = list(chain.from_iterable([DatasetCatalog.get(k) for k in cfg.DATASETS.TRAIN]))
         if cfg.MODEL.KEYPOINT_ON:
