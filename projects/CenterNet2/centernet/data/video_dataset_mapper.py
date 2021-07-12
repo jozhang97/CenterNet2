@@ -2,6 +2,7 @@
 import copy
 import logging
 import numpy as np
+import os
 from typing import List, Optional, Union
 import torch
 
@@ -19,6 +20,15 @@ from .custom_dataset_mapper import custom_transform_instance_annotations
 from .transforms.custom_augmentation_impl import EfficientDetResizeCrop
 
 __all__ = ["VideoDatasetMapper"]
+
+def get_fn(dataset_dict):
+    fn = dataset_dict['file_name']
+    if not os.path.exists(fn):
+        if 'jpg' in fn:
+            fn = fn.replace('jpg', 'jpeg')
+        elif 'jpeg' in fn:
+            fn = fn.replace('jpeg', 'jpg')
+    return fn
 
 class VideoDatasetMapper(DatasetMapper):
     @configurable
@@ -64,15 +74,16 @@ class VideoDatasetMapper(DatasetMapper):
         st = np.random.randint(n_images - n_frames + 1)
         images_dict = copy.deepcopy(video_dict['images'][st: st + n_frames])
 
+        ## Compute per-image transforms for video
+        image = utils.read_image(get_fn(video_dict['images'][st]), format=self.image_format)
+        aug_input = T.StandardAugInput(image)
+        transforms = aug_input.apply_augmentations(self.augmentations)
+
         ## Load and apply transforms to frames and annotations
         ret = []
         for i, dataset_dict in enumerate(images_dict):
-            fn = dataset_dict['file_name']
-            # TODO try jpg and jpeg
-            image = utils.read_image(fn, format=self.image_format)
-            aug_input = T.StandardAugInput(image)
-            transforms = aug_input.apply_augmentations(self.augmentations)
-            image = aug_input.image
+            image = utils.read_image(get_fn(dataset_dict), format=self.image_format)
+            image = transforms.apply_image(image)
             image_shape = image.shape[:2]  # h, w
 
             dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
