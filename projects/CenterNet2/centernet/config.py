@@ -84,7 +84,7 @@ def add_centernet_config(cfg):
 
     _C.INPUT.VID.MAX_VIDEO_LEN = 1
     _C.INPUT.VID.MIN_VIDEO_LEN = 1
-    _C.INPUT.CUSTOM_AUG = ''
+    _C.INPUT.CUSTOM_AUG = 'EfficientDetResizeCrop'
     _C.INPUT.TRAIN_SIZE = 640
     _C.INPUT.TEST_SIZE = 640
     _C.INPUT.SCALE_RANGE = (0.1, 2.)
