@@ -27,6 +27,7 @@ from collections import defaultdict
 from typing import Optional
 
 from .custom_dataset_dataloader import MultiDatasetSampler
+from .video_dataset_loader import get_video_dataset_dicts
 
 
 def single_batch_collator(batch):

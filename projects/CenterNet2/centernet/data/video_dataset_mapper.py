@@ -13,6 +13,7 @@ from detectron2.data.dataset_mapper import DatasetMapper
 from detectron2.data.transforms.augmentation import AugmentationList
 from detectron2.structures import Boxes, BoxMode, Instances
 
+from .custom_build_augmentation import build_custom_augmentation
 from .custom_dataset_mapper import custom_annotations_to_instances
 from .custom_dataset_mapper import custom_transform_instance_annotations
 from .transforms.custom_augmentation_impl import EfficientDetResizeCrop
@@ -41,6 +42,10 @@ class VideoDatasetMapper(DatasetMapper):
         ret = super().from_config(cfg, is_train)
         ret['min_video_len'] = cfg.INPUT.VID.MIN_VIDEO_LEN
         ret['max_video_len'] = cfg.INPUT.VID.MAX_VIDEO_LEN
+        if cfg.INPUT.CUSTOM_AUG != '':
+            ret['augmentation'] = build_custom_augmentation(cfg, is_train)
+        else:
+            ret['augmentation'] = []
         return ret
 
     def __call__(self, video_dict):
