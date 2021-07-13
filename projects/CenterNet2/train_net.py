@@ -37,31 +37,47 @@ from detectron2.data.build import build_detection_train_loader
 
 from centernet.config import add_centernet_config
 from centernet.data.custom_build_augmentation import build_custom_augmentation
+from centernet.data.video_dataset_mapper import VideoDatasetMapper
+from centernet.data.video_dataset_dataloader import build_video_test_loader
+from centernet.data.datasets import tao
 from centernet.modeling.backbone.swintransformer import build_swintransformer_fpn_backbone
+from centernet.modeling.meta_arch.base_video_rcnn import BaseVideoRCNN
 from custom_solver import build_custom_optimizer
+from centernet.evaluation.mot_evaluation import MOTEvaluator
 
 logger = logging.getLogger("detectron2")
 
 def do_test(cfg, model):
     results = OrderedDict()
     for dataset_name in cfg.DATASETS.TEST:
-        mapper = None if cfg.INPUT.TEST_INPUT_TYPE == 'default' else \
-            DatasetMapper(
-                cfg, False, augmentations=build_custom_augmentation(cfg, False))
-        data_loader = build_detection_test_loader(cfg, dataset_name, mapper=mapper)
-        output_folder = os.path.join(
-            cfg.OUTPUT_DIR, "inference_{}".format(dataset_name))
+        output_folder = os.path.join(cfg.OUTPUT_DIR, f"inference_{dataset_name}")
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
 
         if evaluator_type == "lvis":
             evaluator = LVISEvaluator(dataset_name, cfg, True, output_folder)
         elif evaluator_type == 'coco':
             evaluator = COCOEvaluator(dataset_name, cfg, True, output_folder)
+        elif evaluator_type == 'mot':
+            evaluator = MOTEvaluator(dataset_name, cfg, False, output_folder)
         else:
             assert 0, evaluator_type
-            
-        results[dataset_name] = inference_on_dataset(
-            model, data_loader, evaluator)
+
+        if evaluator_type in ['lvis', 'coco']:
+            if cfg.INPUT.TEST_INPUT_TYPE == 'default':
+                mapper = None
+            else:
+                mapper = DatasetMapper(cfg, False,
+                            augmentations=build_custom_augmentation(cfg, False))
+            data_loader = build_detection_test_loader(cfg, dataset_name, mapper=mapper)
+        elif evaluator_type in ['mot']:
+            torch.multiprocessing.set_sharing_strategy('file_system')
+            mapper_kwargs = VideoDatasetMapper.from_config(cfg, False)
+            mapper = VideoDatasetMapper(False, image_format='RGB', **mapper_kwargs)
+            data_loader = build_video_test_loader(cfg, dataset_name, mapper)
+        else:
+            assert 0, evaluator_type
+        results[dataset_name] = inference_on_dataset(model, data_loader, evaluator)
+
         if comm.is_main_process():
             logger.info("Evaluation results for {} in csv format:".format(
                 dataset_name))

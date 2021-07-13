@@ -30,7 +30,7 @@ def register_tao_instances(name, metadata, json_file, image_root):
     """
     DatasetCatalog.register(name, lambda: load_tao_json(json_file, image_root, name))
     MetadataCatalog.get(name).set(
-        json_file=json_file, image_root=image_root, evaluator_type="tao", **metadata
+        json_file=json_file, image_root=image_root, evaluator_type="mot", **metadata
     )
 
 
@@ -177,3 +177,5 @@ for key, (image_root, json_file) in _PREDEFINED_SPLITS_TAOCOCO_CONT.items():
         os.path.join("datasets", json_file) if "://" not in json_file else json_file,
         os.path.join("datasets", image_root),
     )
+
+ALL_TAO_SPLITS = {**_PREDEFINED_SPLITS_TAO, **_PREDEFINED_SPLITS_TAOCOCO_CONT}

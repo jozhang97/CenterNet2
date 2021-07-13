@@ -53,10 +53,8 @@ class VideoDatasetMapper(DatasetMapper):
         ret = {}
         ret['min_video_len'] = cfg.INPUT.VID.MIN_VIDEO_LEN
         ret['max_video_len'] = cfg.INPUT.VID.MAX_VIDEO_LEN
-        if cfg.INPUT.CUSTOM_AUG != '':
-            ret['augmentations'] = build_custom_augmentation(cfg, is_train)
-        else:
-            ret['augmentations'] = []
+        ret['augmentations'] = build_custom_augmentation(cfg, is_train) \
+            if cfg.INPUT.CUSTOM_AUG else []
         return ret
 
     def __call__(self, video_dict):

@@ -89,27 +89,15 @@ def build_video_train_loader(cfg, mapper):
 def build_video_test_loader(cfg, dataset_name, mapper):
     """
     """
+    assert comm.is_main_process()
     dataset = get_video_dataset_dicts(
         [dataset_name],
         filter_empty=False,
     )
-    holistic_test = cfg.HOLISTIC_TEST.ENABLED
-    test_len = cfg.INPUT.VID.TEST_LEN
-    # stride = cfg.INPUT.VID.TEST_STRIDE
-    # stride = test_len if stride < 0 else stride
-    if not holistic_test:
-        dataset = split_video_dataset(dataset, test_len, test_len)
-    else:
-        assert comm.is_main_process()
-
     dataset = DatasetFromList(dataset, copy=False)
     dataset = MapDataset(dataset, mapper)
 
-    if not holistic_test:
-        sampler = InferenceSampler(len(dataset))
-    else:
-        sampler = SingleGPUInferenceSampler(len(dataset))
-
+    sampler = SingleGPUInferenceSampler(len(dataset))
     batch_sampler = torch.utils.data.sampler.BatchSampler(sampler, 1, drop_last=False)
     data_loader = torch.utils.data.DataLoader(
         dataset,

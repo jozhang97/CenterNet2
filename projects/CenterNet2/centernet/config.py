@@ -74,6 +74,10 @@ def add_centernet_config(cfg):
     _C.MODEL.SWIN.USE_CHECKPOINT = False
     _C.MODEL.SWIN.OUT_FEATURES = (1, 2, 3) # (0, 1, 2, 3)
 
+    _C.EVAL = CN()
+    _C.EVAL.CONF_THRESH = 0.
+    _C.EVAL.ORACLE = None
+
     _C.SOLVER.RESET_ITER = False
     _C.SOLVER.TRAIN_ITER = -1
     _C.SOLVER.USE_CUSTOM_SOLVER = False

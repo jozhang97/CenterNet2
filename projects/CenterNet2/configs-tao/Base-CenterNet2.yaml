@@ -1,10 +1,10 @@
 MODEL:
-  META_ARCHITECTURE: "GeneralizedRCNN"
+  META_ARCHITECTURE: "BaseVideoRCNN"
   PROPOSAL_GENERATOR:
     NAME: "CenterNet"
   BACKBONE:
     NAME: "build_p67_resnet_fpn_backbone"
-  WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  WEIGHTS: "/scratch/cluster/jozhang/models/CenterNet2_R50_1x.pth"
   RESNETS:
     DEPTH: 50
     OUT_FEATURES: ["res3", "res4", "res5"]
@@ -61,3 +61,6 @@ INPUT:
   TEST_SIZE: 640
   SCALE_RANGE: (0.1, 2.)
 OUTPUT_DIR: "./output/CenterNet2/auto"
+EVAL:
+  CONF_THRESH: 0.3
+  ORACLE: None
