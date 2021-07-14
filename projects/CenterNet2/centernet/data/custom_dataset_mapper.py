@@ -19,7 +19,7 @@ __all__ = ["CustomDatasetMapper"]
 
 
 def custom_annotations_to_instances(annos, image_size, mask_format="polygon", \
-                                    with_inst_id=False):
+                                    with_inst_id=False, with_track_id=False):
     """
     Add instance id
     """
@@ -72,6 +72,10 @@ def custom_annotations_to_instances(annos, image_size, mask_format="polygon", \
     if with_inst_id:
         instance_ids = [obj.get('instance_id', 0) for obj in annos]
         target.gt_instance_ids = torch.tensor(instance_ids, dtype=torch.int64)
+
+    if with_track_id:
+        tids = [obj['track_id'] for obj in annos]
+        target.gt_track_ids = torch.tensor(tids, dtype=torch.int64)
 
     return target
 

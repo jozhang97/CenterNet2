@@ -92,7 +92,8 @@ class VideoDatasetMapper(DatasetMapper):
                     a['bbox'] = transforms.apply_box(np.array([bbox]))[0]
                     a['bbox_mode'] = BoxMode.XYXY_ABS
                     # TODO handle crowd, clip box
-                instances = custom_annotations_to_instances(annos, image_shape, with_inst_id=True)
+                instances = custom_annotations_to_instances(annos, image_shape,
+                                with_inst_id=True, with_track_id=True)
                 dataset_dict['instances'] = utils.filter_empty_instances(instances)
             ret.append(dataset_dict)
         return ret

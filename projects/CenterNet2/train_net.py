@@ -38,7 +38,7 @@ from detectron2.data.build import build_detection_train_loader
 from centernet.config import add_centernet_config
 from centernet.data.custom_build_augmentation import build_custom_augmentation
 from centernet.data.video_dataset_mapper import VideoDatasetMapper
-from centernet.data.video_dataset_dataloader import build_video_test_loader
+from centernet.data.video_dataset_dataloader import build_video_test_loader, build_video_train_loader
 from centernet.data.datasets import tao
 from centernet.modeling.backbone.swintransformer import build_swintransformer_fpn_backbone
 from centernet.modeling.meta_arch.base_video_rcnn import BaseVideoRCNN
@@ -125,15 +125,16 @@ def do_train(cfg, model, resume=False):
         else []
     )
 
-
-    mapper = DatasetMapper(cfg, True) if cfg.INPUT.CUSTOM_AUG == '' else \
-        DatasetMapper(cfg, True, augmentations=build_custom_augmentation(cfg, True))
-    if cfg.DATALOADER.SAMPLER_TRAIN in ['TrainingSampler', 'RepeatFactorTrainingSampler']:
-        data_loader = build_detection_train_loader(cfg, mapper=mapper)
-    else:
-        from centernet.data.custom_dataset_dataloader import  build_custom_train_loader
-        data_loader = build_custom_train_loader(cfg, mapper=mapper)
-
+    # mapper = DatasetMapper(cfg, True) if cfg.INPUT.CUSTOM_AUG == '' else \
+    #     DatasetMapper(cfg, True, augmentations=build_custom_augmentation(cfg, True))
+    # if cfg.DATALOADER.SAMPLER_TRAIN in ['TrainingSampler', 'RepeatFactorTrainingSampler']:
+    #     data_loader = build_detection_train_loader(cfg, mapper=mapper)
+    # else:
+    #     from centernet.data.custom_dataset_dataloader import  build_custom_train_loader
+    #     data_loader = build_custom_train_loader(cfg, mapper=mapper)
+    mapper_kwargs = VideoDatasetMapper.from_config(cfg, True)
+    mapper = VideoDatasetMapper(True, image_format='RGB', **mapper_kwargs)
+    data_loader = build_video_train_loader(cfg, mapper=mapper)
 
     logger.info("Starting training from iteration {}".format(start_iter))
     with EventStorage(start_iter) as storage:

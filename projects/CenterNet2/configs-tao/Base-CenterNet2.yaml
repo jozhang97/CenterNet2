@@ -15,6 +15,7 @@ MODEL:
     IN_FEATURES: ["p3", "p4", "p5", "p6", "p7"]
     IOU_THRESHOLDS: [0.6]
     NMS_THRESH_TEST: 0.7
+    PROPOSAL_APPEND_GT: False    # bootstraps detection but ruins ID cls
   ROI_BOX_CASCADE_HEAD:
     IOUS: [0.6, 0.7, 0.8]
   ROI_BOX_HEAD:
@@ -38,24 +39,25 @@ MODEL:
     POS_WEIGHT: 0.5
     NEG_WEIGHT: 0.5
     IGNORE_HIGH_FP: 0.85
+    REID_WEIGHT: 1.
 DATASETS:
   TRAIN: ("tao_val_mini_coco_cont",)
   TEST: ("tao_val_mini_coco_cont",)
 SOLVER:
-  IMS_PER_BATCH: 16
-  BASE_LR: 0.02
-  STEPS: (60000, 80000)
+  IMS_PER_BATCH: 1
+  USE_CUSTOM_SOLVER: True
   MAX_ITER: 90000
-  CHECKPOINT_PERIOD: 1000000000
-  WARMUP_ITERS: 4000
-  WARMUP_FACTOR: 0.00025
+  RESET_ITER: True
+  LR_SCHEDULER_NAME: "WarmupCosineLR"
+  BASE_LR: 0.0001
+  OPTIMIZER: "ADAMW"
   CLIP_GRADIENTS:
     ENABLED: True
 INPUT:
   MIN_SIZE_TRAIN: (640, 672, 704, 736, 768, 800)
   VID:
-    MAX_VIDEO_LEN: 5
-    MIN_VIDEO_LEN: 5
+    MAX_VIDEO_LEN: 7
+    MIN_VIDEO_LEN: 7
   CUSTOM_AUG: "EfficientDetResizeCrop"
   TRAIN_SIZE: 640
   TEST_SIZE: 640

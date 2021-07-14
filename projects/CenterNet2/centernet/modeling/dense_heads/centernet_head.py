@@ -96,6 +96,14 @@ class CenterNetHead(nn.Module):
             torch.nn.init.constant_(self.agn_hm.bias, bias_value)
             torch.nn.init.normal_(self.agn_hm.weight, std=0.01)
 
+        self.use_reid = cfg.MODEL.CENTERNET.USE_REID
+        self.reid_dim = cfg.MODEL.CENTERNET.REID_DIM
+        if self.use_reid:
+            self.reid_hm = nn.Conv2d(
+                in_channels, self.reid_dim, kernel_size=self.out_kernel,
+                stride=1, padding=self.out_kernel // 2
+            )
+
         if not self.only_proposal:
             cls_kernel_size = self.out_kernel
             self.cls_logits = nn.Conv2d(
@@ -113,6 +121,7 @@ class CenterNetHead(nn.Module):
         clss = []
         bbox_reg = []
         agn_hms = []
+        reid_hms = []
         for l, feature in enumerate(x):
             feature = self.share_tower(feature)
             cls_tower = self.cls_tower(feature)
@@ -129,5 +138,8 @@ class CenterNetHead(nn.Module):
             reg = self.bbox_pred(bbox_tower)
             reg = self.scales[l](reg)
             bbox_reg.append(F.relu(reg))
-        
-        return clss, bbox_reg, agn_hms
+            if self.use_reid:
+                reid_hms.append(self.reid_hm(bbox_tower))
+            else:
+                reid_hms.append(None)
+        return clss, bbox_reg, agn_hms, reid_hms

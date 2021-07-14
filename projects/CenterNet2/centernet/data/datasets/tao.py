@@ -13,6 +13,7 @@ from detectron2.data.datasets.lvis_v1_categories import LVIS_CATEGORIES as LVIS_
 from detectron2.data.datasets.lvis import get_lvis_instances_meta, register_lvis_instances
 from detectron2.data.datasets.builtin_meta import _get_builtin_metadata
 
+from centernet.ct_utils.track_utils import _make_track_ids_unique, _make_track_ids_smallest
 logger = logging.getLogger(__name__)
 
 __all__ = ["load_tao_json", "register_tao_instances", "get_tao_instances_meta"]
@@ -41,6 +42,8 @@ def load_tao_json(json_file, image_root, dataset_name=None):
 
     timer = Timer()
     lvis_api = LVIS(json_file)
+    _make_track_ids_unique(lvis_api.dataset['annotations'])
+    num_tracks = _make_track_ids_smallest(lvis_api.dataset['annotations'])
     if timer.seconds() > 1:
         logger.info("Loading {} takes {:.2f} seconds.".format(json_file, timer.seconds()))
 
@@ -75,7 +78,7 @@ def load_tao_json(json_file, image_root, dataset_name=None):
 
     imgs_anns = list(zip(imgs, anns))
 
-    logger.info("Loaded {} images in the LVIS v0.5 format from {}".format(len(imgs_anns), json_file))
+    logger.info(f"Loaded {len(imgs_anns)} images, {num_tracks} tracks in the LVIS v0.5 format from {json_file}")
 
     dataset_dicts = []
     all_frames = defaultdict(list)
