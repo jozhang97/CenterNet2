@@ -111,6 +111,7 @@ class CustomCascadeROIHeads(CascadeROIHeads):
         head_outputs = []  # (predictor, predictions, proposals)
         prev_pred_boxes = None
         image_sizes = [x.image_size for x in proposals]
+        # TODO somehow pass other Instance attributes (ReID) forward
         for k in range(self.num_cascade_stages):
             if k > 0:
                 proposals = self._create_proposals_from_boxes(prev_pred_boxes, image_sizes)
